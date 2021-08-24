@@ -1,13 +1,13 @@
-import csv
+import time
 
 class Grid:
 
 	def __init__(self):
-		pass
+		self.recursions = 0
 
 	# TESTED OK
 	def read_csv(self, file):
-		grid = [["*" for j in range(1, 10)] for i in range(1, 10)]
+		grid = [[" " for j in range(1, 10)] for i in range(1, 10)]
 		with open(file, 'r') as csv_file:
 			line_num = 0
 			for line in csv_file:
@@ -18,7 +18,7 @@ class Grid:
 					try:
 						num = int(num)
 					except:
-						pass
+						num = " "
 					int_nums.append(num)
 				grid[line_num] = int_nums
 				line_num += 1
@@ -26,9 +26,27 @@ class Grid:
 
 	# TESTED OK
 	def print_grid(self, grid):
+		print("\n")
+		horizontal_sep = '+'+ ('-' * (18+9+2)) + '+'
+		sub_grid_div = "+".join(['-' * (9) for i in range(3)])
+		print(horizontal_sep)
+		a = 0
 		for line in grid:
 			line = [str(x) for x in line]
-			print(",".join(line))
+			print_me = "|"
+			idx = 0
+			for num in line:
+				print_me += " "+num+" "
+				if idx == 2 or idx == 5:
+					print_me += "|"
+				idx += 1
+			print_me += "|"
+			print(print_me)
+			if a == 2 or a == 5:
+				print("|"+sub_grid_div+"|")
+			a += 1
+		print(horizontal_sep)
+		print("\n")
 
 	# TESTED OK
 	def get_rows(self, grid):
@@ -114,16 +132,16 @@ class Grid:
 		return x, y
 
 	def copy(self, grid):
-		new_grid = [["*" for j in range(1, 10)] for i in range(1, 10)]
+		new_grid = [[" " for j in range(1, 10)] for i in range(1, 10)]
 		for x in range(9):
 			for y in range(9):
 				new_grid[x][y] = grid[x][y]
 		return new_grid
 
 	def recurse(self, old_grid, x, y, level):
+		self.recursions += 1
 		grid = self.copy(old_grid)
 		level += 1
-		print("----------")
 		self.print_grid(grid)
 
 		# grid is valid - stop recursion
@@ -143,6 +161,7 @@ class Grid:
 			for ree in grid[sub_grid_x:sub_grid_x+3]:
 				sub_grid.extend(ree[sub_grid_y:sub_grid_y+3])
 			for num in range(1, 10):
+				time.sleep(0.001)
 				if not ((num in row) or (num in col) or (num in sub_grid)):
 					grid[new_x][new_y] = num
 					solved = self.recurse(grid, new_x, new_y, level)
@@ -154,52 +173,10 @@ class Grid:
 		return False
 
 
-		# curr_num = self.grid[x][y]
-		# if self.num_valid(curr_num):
-		# 	# move ahead
-		# 	x, y = self.incr_pos(x, y)
-		# elif curr_num == 9:
-		# 	# backtrack
-		# 	self.grid[x][y] = "*"
-		# 	x, y = self.decr_pos(x, y)
-		# elif curr_num == "*":
-		# 	# set to 0, move ahead
-		# 	self.grid[x][y] = 1
-		# 	x, y = self.incr_pos(x, y)
-		# else:
-		# 	print(curr_num)
-		# 	# increase curr_num
-		# 	curr_num += 1
-		# 	self.grid[x][y] = curr_num
-		# self.recurse(x, y)
-
-
-		# check col validity
-		# for x in range(10):
-		# 	nums = []
-		# 	for y in
-		# check row validity
-		# check sub-grid validity
-
-
-	# def recurse(self, grid):
-	# 	for row, idx in grid:
-	# 		if self.nums_valid(row):
-
-	# def grid_valid(self, grid):
-	# 	rows = grid
-	# 	cols = [rows[x][] for x in range(9)]
-	# 	return
-
-
-
-
-
-
 if __name__ == "__main__":
 	g = Grid()
 	grid = g.read_csv('./grid1.csv')
 	g.print_grid(grid)
 	g.recurse(grid, 0, 0, 0)
-	# g.find_next_empty(g.grid, 7, 8)
+	print(g.recursions)
 
