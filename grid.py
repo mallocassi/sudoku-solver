@@ -1,9 +1,14 @@
 import time
+import random
+import os
+import sys
 
 class Grid:
 
 	def __init__(self):
 		self.recursions = 0
+		self.random_factor = None
+		self.solved = None
 
 	# TESTED OK
 	def read_csv(self, file):
@@ -11,14 +16,14 @@ class Grid:
 		with open(file, 'r') as csv_file:
 			line_num = 0
 			for line in csv_file:
-				nums = line.strip().split(',')
+				nums = line.strip()
 				assert len(nums) == 9
 				int_nums = []
 				for num in nums:
-					try:
-						num = int(num)
-					except:
+					if num in ["0", " ", "*"]:
 						num = " "
+					else:
+						num = int(num)
 					int_nums.append(num)
 				grid[line_num] = int_nums
 				line_num += 1
@@ -94,13 +99,13 @@ class Grid:
 	def valid(self, grid):
 		for row in self.get_rows(grid):
 			if not self.nums_valid(row):
-				return False 
+				return False
 		for col in self.get_cols(grid):
 			if not self.nums_valid(col):
-				return False 
+				return False
 		for grid in self.get_sub_grids(grid):
 			if not self.nums_valid(grid):
-				return False 
+				return False
 		return True
 
 	# TESTED OK
@@ -111,7 +116,7 @@ class Grid:
 			x = 0
 			y += 1
 		if y == 9:
-			raise Exception("Reached end")
+			return 0, 0
 		return x, y
 
 	# TESTED OK
@@ -124,12 +129,50 @@ class Grid:
 			y -= 1
 			return x, y
 
+	def get_random_empty(self, grid):
+		x = random.randrange(9)
+		y = random.randrange(9)
+		if grid[x][y] != " ":
+			return self.get_random_empty(grid)
+		return x, y
+
 	def find_next_empty(self, grid, x, y):
 		while self.num_valid(grid[x][y]):
 			x, y = self.incr_pos(x, y)
 			if x > 8 or y > 8:
-				raise Exception
+				return self.find_next_empty(grid, 0, 0)
 		return x, y
+
+	def find_next_crowded(self, grid, x, y):
+		max_coeff = 0
+		new_x, new_y = self.find_next_empty(grid, x, y)
+		for ii in range(9):
+			for jj in range(9):
+				if ii == x and jj == y:
+					continue
+				val = grid[ii][jj]
+				if val != " ":
+					continue
+				crowd_coeff = 0
+				row = grid[ii]
+				col = [r[jj] for r in grid]
+				sub_grid_x = 3*(ii // 3)
+				sub_grid_y = 3*(jj // 3)
+				sub_grid = []
+				for ree in grid[sub_grid_x:sub_grid_x+3]:
+					sub_grid.extend(ree[sub_grid_y:sub_grid_y+3])
+				# count row
+				crowd_coeff += sum([1 for v in row if v != " "])
+				# count col
+				crowd_coeff += sum([1 for v in col if v != " "])
+				# count subgrid
+				crowd_coeff += sum([1 for v in sub_grid if v != " "])
+				if crowd_coeff > max_coeff:
+					max_coeff = crowd_coeff
+					new_x = ii
+					new_y = jj
+		return new_x, new_y
+
 
 	def copy(self, grid):
 		new_grid = [[" " for j in range(1, 10)] for i in range(1, 10)]
@@ -146,37 +189,40 @@ class Grid:
 
 		# grid is valid - stop recursion
 		if self.valid(grid):
-			print("FOUND VALID GRID")
+			print("Valid")
+			self.solved = grid
 			return True
 
 		# find next empty spot
-		try:
-			new_x, new_y = self.find_next_empty(grid, x, y)
-			# set a number and recurse 
-			row = grid[new_x]
-			col = [r[new_y] for r in grid]
-			sub_grid_x = 3*(new_x // 3)
-			sub_grid_y = 3*(new_y // 3)
-			sub_grid = []
-			for ree in grid[sub_grid_x:sub_grid_x+3]:
-				sub_grid.extend(ree[sub_grid_y:sub_grid_y+3])
-			for num in range(1, 10):
-				time.sleep(0.001)
-				if not ((num in row) or (num in col) or (num in sub_grid)):
-					grid[new_x][new_y] = num
-					solved = self.recurse(grid, new_x, new_y, level)
-					if solved:
-						return True
-		except Exception as ex:
-			print(ex)
-			# no next empty, backtrack
+		if self.random_factor and self.recursions % self.random_factor == 0:
+			new_x, new_y = self.get_random_empty(grid)
+		else:
+			new_x, new_y = self.find_next_crowded(grid, x, y)
+		# set a number and recurse
+		row = grid[new_x]
+		col = [r[new_y] for r in grid]
+		sub_grid_x = 3*(new_x // 3)
+		sub_grid_y = 3*(new_y // 3)
+		sub_grid = []
+		for ree in grid[sub_grid_x:sub_grid_x+3]:
+			sub_grid.extend(ree[sub_grid_y:sub_grid_y+3])
+		for num in range(1, 10):
+			time.sleep(0.0001)
+			if not ((num in row) or (num in col) or (num in sub_grid)):
+				grid[new_x][new_y] = num
+				solved = self.recurse(grid, new_x, new_y, level)
+				if solved:
+					return True
 		return False
 
 
 if __name__ == "__main__":
 	g = Grid()
-	grid = g.read_csv('./grid1.csv')
+	grid = g.read_csv(sys.argv[1])
 	g.print_grid(grid)
 	g.recurse(grid, 0, 0, 0)
-	print(g.recursions)
+	print("Recursions: "+str(g.recursions))
+	print("Random factor: "+str(g.random_factor))
+	g.print_grid(grid)
+	g.print_grid(g.solved)
 
